@@ -244,29 +244,45 @@ function renderResultStep(outcome, reply, backendActions) {
           <pre class="result-summary">${backendActions.join("\n\n")}</pre>
         </details>` : ""}
       ${!isSuccess ? `
-        <a class="btn btn-outline result-mailto" id="mailto-btn">
-          Email our support team
-        </a>
-        <p class="result-contact" style="margin-top:10px;">Before sending, add your new number and attach a photo of your ID.</p>` : ""}
-      <button class="btn btn-primary" id="result-close">Done</button>
+        <div class="email-actions">
+          <a class="btn btn-outline result-mailto" id="mailto-btn">Open in mail app</a>
+          <button class="btn btn-primary" id="copy-btn" type="button">Copy email draft</button>
+        </div>
+        <p class="result-contact" style="margin-top:10px;" id="copy-confirm"></p>
+        <p class="result-contact">Add your new number and attach a photo of your ID before sending.</p>` : ""}
+      <button class="btn ${isSuccess ? "btn-primary" : "btn-outline"}" id="result-close">Done</button>
       <p class="result-contact">
         Have further questions? Reach out to <a href="mailto:hello@partiful.com">hello@partiful.com</a>.
       </p>
     </div>`;
 
   if (!isSuccess) {
+    const emailBody =
+      "To: hello@partiful.com\n" +
+      "Subject: Phone Number Change Request\n\n" +
+      "Hi Partiful Support,\n\n" +
+      "I need help updating the phone number on my Partiful account — I no longer have access to my previous number.\n\n" +
+      "Reference ID: " + sessionId + "\n" +
+      "New phone number: [please add your new number here]\n\n" +
+      "What happened:\n" + whatHappened + "\n\n" +
+      "I've also attached a photo of my government-issued ID.\n\n" +
+      "Thanks!";
+
     const mailtoHref = "mailto:hello@partiful.com" +
       "?subject=" + encodeURIComponent("Phone Number Change Request") +
-      "&body=" + encodeURIComponent(
-        "Hi Partiful Support,\n\n" +
-        "I need help updating the phone number on my Partiful account — I no longer have access to my previous number.\n\n" +
-        "Reference ID: " + sessionId + "\n" +
-        "New phone number: [please add your new number here]\n\n" +
-        "What happened:\n" + whatHappened + "\n\n" +
-        "I've also attached a photo of my government-issued ID.\n\n" +
-        "Thanks!"
-      );
+      "&body=" + encodeURIComponent(emailBody.split("\n\n").slice(1).join("\n\n"));
     document.getElementById("mailto-btn").href = mailtoHref;
+
+    document.getElementById("copy-btn").addEventListener("click", () => {
+      navigator.clipboard.writeText(emailBody).then(() => {
+        const confirm = document.getElementById("copy-confirm");
+        confirm.textContent = "Copied! Paste it into a new email to hello@partiful.com.";
+        confirm.style.color = "#34c759";
+      }).catch(() => {
+        const confirm = document.getElementById("copy-confirm");
+        confirm.textContent = "Couldn't copy automatically — please use the mail app button instead.";
+      });
+    });
   }
 
   document.getElementById("result-close").addEventListener("click", closeModal);
