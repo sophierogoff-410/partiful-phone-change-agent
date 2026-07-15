@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Can I change my phone number? — Partiful Help Center</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='site.css') }}" />
+</head>
+<body class="dark">
+  <header class="site-header dark">
+    <div class="site-header-inner header-row">
+      <div class="wordmark dark">Partiful <span>Help Center</span></div>
+      <div class="demo-switch">
+        Demo mode:
+        <a href="{{ url_for('help_center') }}">Email flow</a>
+        &nbsp;|&nbsp;
+        <strong>Embedded widget</strong>
+      </div>
+    </div>
+  </header>
+
+  <main class="help-article dark">
+    <h1>Can I change my phone number?</h1>
+
+    <p>If you have access to your old number:</p>
+    <ul>
+      <li>Open <a href="#" class="inline-link">this link</a> to edit your profile</li>
+      <li>Click on your phone number</li>
+      <li>Follow the steps to update your number!</li>
+    </ul>
+
+    <p>
+      If you don't have access to your old number, don't worry — we can still update it for you
+      once we verify your identity another way.
+    </p>
+
+    <p>
+      Reach out to <a href="#" class="inline-link">hello@partiful.com</a> if you have further questions.
+    </p>
+
+    <button class="btn btn-cta" id="open-wizard-btn" type="button">
+      Verify my identity
+    </button>
+    <p class="cta-caption">Takes about a minute — no email required.</p>
+  </main>
+
+  <!-- Popup verification wizard -->
+  <div class="modal-overlay" id="modal-overlay" hidden>
+    <div class="modal-dialog">
+      <button class="modal-close" id="modal-close" type="button" aria-label="Close">&times;</button>
+
+      <div class="modal-header">
+        <div class="modal-title">Verify your identity</div>
+        <div class="step-dots" id="step-dots">
+          <span class="dot" data-step="access"></span>
+          <span class="dot" data-step="phone"></span>
+          <span class="dot" data-step="id"></span>
+          <span class="dot" data-step="result"></span>
+        </div>
+      </div>
+
+      <div class="modal-body" id="modal-body">
+        <!-- steps rendered here by embedded.js -->
+      </div>
+    </div>
+  </div>
+
+  <script src="{{ url_for('static', filename='embedded.js') }}"></script>
+</body>
+</html>

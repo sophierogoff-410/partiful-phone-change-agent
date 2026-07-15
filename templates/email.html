@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>We got your message — Partiful Support</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='site.css') }}" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="site-header-inner">
+      <div class="wordmark">Mail <span>Inbox (demo)</span></div>
+    </div>
+  </header>
+
+  <main class="email-view">
+    <div class="email-meta-row">
+      <div class="email-subject">We got your message — let's update your phone number</div>
+      <div class="email-timestamp">Just now</div>
+    </div>
+    <div class="email-from-row">
+      <div class="avatar small">P</div>
+      <div>
+        <div class="email-from-name">Partiful Support</div>
+        <div class="email-from-addr">hello@partiful.com</div>
+      </div>
+    </div>
+
+    <div class="email-body">
+      <p>Hi there,</p>
+      <p>
+        Thanks for reaching out about changing the phone number on your Partiful account. To get this
+        resolved as fast as possible, chat with our support assistant below — it can verify your identity
+        and update your number right away. If it can't resolve your request automatically, it'll loop in a
+        real teammate for you.
+      </p>
+      <a class="btn" href="{{ url_for('chat') }}">Start verification chat →</a>
+      <p>Talk soon,<br />The Partiful Support Team</p>
+    </div>
+    <p class="callout-note">
+      (In production this would be a real automated reply — e.g. a Zendesk/Front trigger on new
+      hello@partiful.com tickets about phone changes — containing a secure, session-linked URL to the agent.)
+    </p>
+  </main>
+</body>
+</html>

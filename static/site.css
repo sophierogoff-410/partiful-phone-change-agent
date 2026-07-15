@@ -1,0 +1,549 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: #f4f1ea;
+  color: #222;
+}
+
+.site-header {
+  background: #ffffff;
+  border-bottom: 1px solid #eee;
+  padding: 16px 24px;
+}
+
+.site-header-inner {
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.wordmark {
+  font-weight: 800;
+  font-size: 18px;
+  color: #ff5a5f;
+}
+
+.wordmark span {
+  font-weight: 500;
+  color: #888;
+  font-size: 14px;
+  margin-left: 6px;
+}
+
+.help-article,
+.email-view {
+  max-width: 720px;
+  margin: 32px auto;
+  background: white;
+  padding: 32px 40px;
+  border-radius: 12px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.06);
+}
+
+.breadcrumb {
+  font-size: 12px;
+  color: #999;
+  margin-bottom: 12px;
+}
+
+.help-article h1 {
+  font-size: 26px;
+  margin: 0 0 6px;
+}
+
+.meta {
+  color: #999;
+  font-size: 12px;
+  margin-bottom: 24px;
+}
+
+.help-article ol {
+  line-height: 1.9;
+}
+
+.callout {
+  margin-top: 28px;
+  background: #fff6ea;
+  border: 1px solid #ffe1b3;
+  border-radius: 10px;
+  padding: 20px 24px;
+}
+
+.callout-title {
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.callout-note {
+  font-size: 12px;
+  color: #999;
+  margin-top: 12px;
+}
+
+.btn {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 10px 20px;
+  background: #ff5a5f;
+  color: white;
+  text-decoration: none;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.btn:hover {
+  background: #e6484d;
+}
+
+/* Email mockup */
+.email-meta-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 14px;
+  margin-bottom: 14px;
+}
+
+.email-subject {
+  font-size: 19px;
+  font-weight: 700;
+}
+
+.email-timestamp {
+  font-size: 12px;
+  color: #999;
+}
+
+.email-from-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.avatar.small {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #ff5a5f;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.email-from-name {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.email-from-addr {
+  font-size: 12px;
+  color: #999;
+}
+
+.email-body p {
+  line-height: 1.7;
+}
+
+/* Dark theme — mirrors the real Partiful Help Center look */
+body.dark {
+  background:
+    radial-gradient(circle at 10% 20%, #ff5a5f 0, transparent 1px),
+    radial-gradient(circle at 80% 15%, #7c5cff 0, transparent 1px),
+    radial-gradient(circle at 60% 60%, #4ade80 0, transparent 1px),
+    radial-gradient(circle at 30% 80%, #ffd166 0, transparent 1px),
+    radial-gradient(circle at 90% 75%, #ff5a5f 0, transparent 1px),
+    #0a0a0c;
+  background-size: 340px 340px;
+  color: #e9e9ec;
+  min-height: 100vh;
+}
+
+.site-header.dark {
+  background: #0a0a0c;
+  border-bottom: 1px solid #232326;
+}
+
+.wordmark.dark {
+  color: #ffffff;
+}
+
+.wordmark.dark span {
+  color: #8a8a92;
+}
+
+.help-article.dark {
+  background: transparent;
+  box-shadow: none;
+  padding: 48px 40px;
+}
+
+.help-article.dark h1 {
+  font-size: 40px;
+  font-weight: 800;
+  line-height: 1.15;
+  max-width: 640px;
+}
+
+.help-article.dark p,
+.help-article.dark li {
+  color: #d6d6da;
+  font-size: 16px;
+  line-height: 1.8;
+}
+
+.help-article.dark ul {
+  padding-left: 20px;
+}
+
+.inline-link {
+  color: #c48bff;
+  text-decoration: underline;
+}
+
+.demo-divider {
+  border: none;
+  border-top: 1px solid #232326;
+  margin: 36px 0 28px;
+}
+
+.demo-callout {
+  background: #17171b;
+  border: 1px solid #2a2a2f;
+  border-radius: 12px;
+  padding: 20px 24px;
+}
+
+.demo-callout-label {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #ff5a5f;
+  margin-bottom: 8px;
+}
+
+.demo-callout p {
+  color: #b9b9c0;
+  font-size: 14px;
+}
+
+.demo-callout button.btn {
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+/* Header nav for switching between demo rollout options */
+.header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.demo-switch {
+  font-size: 12px;
+  color: #8a8a92;
+}
+
+.demo-switch a {
+  color: #c48bff;
+  text-decoration: underline;
+}
+
+.demo-switch strong {
+  color: #e9e9ec;
+}
+
+/* Buttons inside the verification wizard modal (Option B) — purple to match Partiful's theme */
+.btn-primary {
+  background: linear-gradient(135deg, #8a5cff, #c48bff);
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 15px;
+  padding: 13px 26px;
+  margin-top: 28px;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, #7a48ff, #b673ff);
+}
+
+/* Main FAQ-page CTA — matches Partiful's real purple accent, not the coral used inside the modal */
+.btn-cta {
+  display: inline-block;
+  background: linear-gradient(135deg, #8a5cff, #c48bff);
+  border: none;
+  color: white;
+  border-radius: 20px;
+  font-weight: 600;
+  font-family: inherit;
+  font-size: 14px;
+  padding: 11px 22px;
+  margin-top: 28px;
+  cursor: pointer;
+}
+
+.btn-cta:hover {
+  background: linear-gradient(135deg, #7a48ff, #b673ff);
+}
+
+.btn-outline {
+  display: inline-block;
+  background: transparent;
+  color: #7a48ff;
+  border: 1px solid #c48bff;
+  border-radius: 20px;
+  padding: 10px 20px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.btn-outline:hover {
+  background: #f5f0ff;
+  border-color: #8a5cff;
+}
+
+.cta-caption {
+  font-size: 12px;
+  color: #7a7a82;
+  margin-top: 8px;
+}
+
+/* Popup verification wizard (Option B) */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 8, 10, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 100;
+}
+
+.modal-overlay[hidden] {
+  display: none;
+}
+
+.modal-dialog {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 28px 26px 26px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.4);
+  color: #222;
+}
+
+.modal-close {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  background: none;
+  border: none;
+  font-size: 22px;
+  line-height: 1;
+  color: #999;
+  cursor: pointer;
+}
+
+.modal-close:hover {
+  color: #333;
+}
+
+.modal-header {
+  margin-bottom: 20px;
+}
+
+.modal-title {
+  font-weight: 700;
+  font-size: 17px;
+  margin-bottom: 12px;
+}
+
+.step-dots {
+  display: flex;
+  gap: 6px;
+}
+
+.step-dots .dot {
+  width: 22px;
+  height: 4px;
+  border-radius: 2px;
+  background: #e9e9ec;
+}
+
+.step-dots .dot.active {
+  background: #ff5a5f;
+}
+
+.step-dots .dot.done {
+  background: #ffb3b5;
+}
+
+.modal-body {
+  min-height: 140px;
+}
+
+.step-question {
+  font-size: 15px;
+  line-height: 1.6;
+  margin: 0 0 18px;
+}
+
+.step-error {
+  font-size: 13px;
+  color: #c0392b;
+  background: #fdecea;
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-bottom: 14px;
+}
+
+.step-input {
+  width: 100%;
+  padding: 11px 14px;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  font-size: 14px;
+  margin-bottom: 8px;
+  outline: none;
+}
+
+.step-input:focus {
+  border-color: #ff5a5f;
+}
+
+.step-hint {
+  font-size: 12px;
+  color: #999;
+  margin: 0 0 16px;
+}
+
+.step-hint-complete {
+  color: #34c759;
+  font-weight: 600;
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.file-drop {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  border: 1.5px dashed #ccc;
+  border-radius: 10px;
+  padding: 24px 16px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #888;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.file-drop:hover {
+  border-color: #8a5cff;
+  color: #7a48ff;
+}
+
+.step-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.step-actions .btn {
+  margin-top: 0;
+}
+
+.step-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 140px;
+  color: #999;
+  font-size: 14px;
+  font-style: italic;
+}
+
+.result-card {
+  text-align: center;
+  padding: 8px 4px 4px;
+}
+
+.result-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 14px;
+  font-size: 20px;
+  font-weight: 700;
+  color: white;
+}
+
+.result-success .result-icon {
+  background: #34c759;
+}
+
+.result-warning .result-icon {
+  background: #ff9f0a;
+}
+
+.result-title {
+  font-weight: 700;
+  font-size: 17px;
+  margin-bottom: 8px;
+}
+
+.result-message {
+  font-size: 14px;
+  color: #555;
+  line-height: 1.6;
+  margin-bottom: 16px;
+  white-space: pre-wrap;
+}
+
+.result-details {
+  text-align: left;
+  font-size: 12px;
+  color: #888;
+  margin-bottom: 16px;
+}
+
+.result-details summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.result-summary {
+  white-space: pre-wrap;
+  font-family: inherit;
+  background: #f7f7f8;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-top: 8px;
+  color: #666;
+}

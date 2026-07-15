@@ -1,0 +1,132 @@
+[
+  {
+    "id": "TC01_self_serve",
+    "description": "User still has old phone -> redirected to self-service instructions, no verification needed.",
+    "messages": [
+      "Hi, I need to change the phone number on my account",
+      "yes"
+    ],
+    "expected_outcome": "self_serve"
+  },
+  {
+    "id": "TC02_verified_success",
+    "description": "User lost old phone, submits valid phone + clear ID -> auto-verified and phone number updated.",
+    "messages": [
+      "I lost access to my old phone number and need to update it",
+      "no",
+      "555-123-4567",
+      "clear photo of my driver's license, name matches my account"
+    ],
+    "expected_outcome": "verified_and_updated"
+  },
+  {
+    "id": "TC03_retry_then_success",
+    "description": "First ID photo is too blurry to verify; user resubmits a clear one and succeeds.",
+    "messages": [
+      "I need to change my phone number, lost my old one",
+      "no",
+      "555-987-6543",
+      "blurry photo of my ID",
+      "clear photo of my ID, retaken in better light"
+    ],
+    "expected_outcome": "verified_and_updated"
+  },
+  {
+    "id": "TC04_retry_exhausted_escalate",
+    "description": "ID photo is unusable twice in a row -> retries exhausted, escalated to human support.",
+    "messages": [
+      "I need to change my phone number, lost my old one",
+      "no",
+      "555-111-2222",
+      "blurry dark photo of my ID",
+      "still blurry and unclear photo, sorry"
+    ],
+    "expected_outcome": "escalated_verification_failed"
+  },
+  {
+    "id": "TC05_expired_id_escalate",
+    "description": "ID is expired -> not retryable, escalated immediately.",
+    "messages": [
+      "I lost my phone and need to change my number",
+      "no",
+      "555-222-3333",
+      "photo of my ID, but I noticed it's expired"
+    ],
+    "expected_outcome": "escalated_verification_failed"
+  },
+  {
+    "id": "TC06_name_mismatch_fraud_signal",
+    "description": "ID has a name mismatch with the account -> fraud signal, escalated for human review.",
+    "messages": [
+      "I need to change my phone number, I don't have my old phone anymore",
+      "no",
+      "555-333-4444",
+      "photo of an ID, but there's a name mismatch with a different name on it"
+    ],
+    "expected_outcome": "escalated_verification_failed"
+  },
+  {
+    "id": "TC07_low_confidence_escalate",
+    "description": "Verification technically passes but with low confidence -> escalated for human double-check rather than auto-approved.",
+    "messages": [
+      "I lost access to my old phone number, need to change it",
+      "no",
+      "555-444-5555",
+      "photo of ID, somewhat low confidence and uncertain image quality"
+    ],
+    "expected_outcome": "escalated_low_confidence"
+  },
+  {
+    "id": "TC08_missing_phone_number_retry",
+    "description": "User gives a non-phone-number answer first; agent re-asks before proceeding.",
+    "messages": [
+      "I need to change my phone number, lost my old one",
+      "no",
+      "not sure yet, let me check",
+      "555-666-7777",
+      "clear photo of my driver's license"
+    ],
+    "expected_outcome": "verified_and_updated"
+  },
+  {
+    "id": "TC09_missing_id_retry",
+    "description": "User gives gibberish instead of an ID description; agent re-asks before proceeding.",
+    "messages": [
+      "I need to change my phone number, lost my old one",
+      "no",
+      "555-777-8888",
+      "asdf",
+      "clear photo of my state ID"
+    ],
+    "expected_outcome": "verified_and_updated"
+  },
+  {
+    "id": "TC10_spam_out_of_scope",
+    "description": "Message is unrelated to phone number changes -> agent declines and points to human support.",
+    "messages": [
+      "How do I RSVP to my friend's birthday party?"
+    ],
+    "expected_outcome": "closed_out_of_scope"
+  },
+  {
+    "id": "TC11_ambiguous_but_valid_intake",
+    "description": "Vaguer phrasing that is still clearly a phone-change/access issue -> agent correctly classifies and proceeds.",
+    "messages": [
+      "My phone number changed and now I can't log into Partiful with my old one",
+      "no",
+      "555-888-9999",
+      "clear photo of my passport"
+    ],
+    "expected_outcome": "verified_and_updated"
+  },
+  {
+    "id": "TC12_closed_session_repeat_message",
+    "description": "After a session resolves, further messages get a closed-conversation reply instead of restarting the flow.",
+    "messages": [
+      "Hi, I need to change my phone number",
+      "yes",
+      "hello, are you still there?"
+    ],
+    "expected_outcome": "self_serve"
+  }
+]

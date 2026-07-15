@@ -1,0 +1,8 @@
+.env
+__pycache__/
+*.pyc
+test_run_transcripts.json
+test_run_results.json
+.venv/
+venv/
+flask.log
