@@ -244,13 +244,10 @@ function renderResultStep(outcome, reply, backendActions) {
           <pre class="result-summary">${backendActions.join("\n\n")}</pre>
         </details>` : ""}
       ${!isSuccess ? `
-        <div class="email-actions">
-          <a class="btn btn-outline result-mailto" id="mailto-btn">Open in mail app</a>
-          <button class="btn btn-primary" id="copy-btn" type="button">Copy email draft</button>
-        </div>
-        <p class="result-contact" style="margin-top:10px;" id="copy-confirm"></p>
+        <a class="btn btn-primary result-mailto" id="mailto-btn">Email our support team</a>
+        <p class="result-contact" id="copy-confirm"></p>
         <p class="result-contact">Add your new number and attach a photo of your ID before sending.</p>` : ""}
-      <button class="btn ${isSuccess ? "btn-primary" : "btn-outline"}" id="result-close">Done</button>
+      <button class="btn btn-outline" id="result-close">Done</button>
       <p class="result-contact">
         Have further questions? Reach out to <a href="mailto:hello@partiful.com">hello@partiful.com</a>.
       </p>
@@ -271,17 +268,26 @@ function renderResultStep(outcome, reply, backendActions) {
     const mailtoHref = "mailto:hello@partiful.com" +
       "?subject=" + encodeURIComponent("Phone Number Change Request") +
       "&body=" + encodeURIComponent(emailBody.split("\n\n").slice(1).join("\n\n"));
-    document.getElementById("mailto-btn").href = mailtoHref;
+    const mailtoBtn = document.getElementById("mailto-btn");
+    mailtoBtn.href = mailtoHref;
 
-    document.getElementById("copy-btn").addEventListener("click", () => {
-      navigator.clipboard.writeText(emailBody).then(() => {
-        const confirm = document.getElementById("copy-confirm");
-        confirm.textContent = "Copied! Paste it into a new email to hello@partiful.com.";
-        confirm.style.color = "#34c759";
-      }).catch(() => {
-        const confirm = document.getElementById("copy-confirm");
-        confirm.textContent = "Couldn't copy automatically — please use the mail app button instead.";
-      });
+    // If the mail app doesn't open (no default client configured), fall back
+    // to copying the draft to clipboard and showing a nudge.
+    mailtoBtn.addEventListener("click", () => {
+      const confirm = document.getElementById("copy-confirm");
+      setTimeout(() => {
+        // If the page is still visible after 800ms the mail app didn't take over —
+        // offer clipboard copy as a fallback.
+        if (!document.hidden) {
+          navigator.clipboard.writeText(emailBody).then(() => {
+            confirm.innerHTML = "No mail app detected — draft copied to clipboard. Paste into a new email to <strong>hello@partiful.com</strong>.";
+            confirm.style.color = "#7a48ff";
+          }).catch(() => {
+            confirm.innerHTML = "No mail app detected. Please email <strong>hello@partiful.com</strong> manually with your reference ID: " + sessionId;
+            confirm.style.color = "#999";
+          });
+        }
+      }, 800);
     });
   }
 

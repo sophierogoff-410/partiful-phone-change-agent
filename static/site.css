@@ -632,21 +632,11 @@ body.dark {
   color: #666;
 }
 
-.email-actions {
-  display: flex;
-  gap: 8px;
-  margin-top: 16px;
-}
-
-.email-actions .btn {
-  flex: 1;
-  text-align: center;
-  margin-top: 0;
-}
-
 .result-mailto {
   display: inline-block;
   text-decoration: none;
+  width: 100%;
+  text-align: center;
 }
 
 .result-contact {
