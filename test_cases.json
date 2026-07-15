@@ -10,34 +10,33 @@
   },
   {
     "id": "TC02_verified_success",
-    "description": "User lost old phone, submits valid phone + clear ID -> auto-verified and phone number updated.",
+    "description": "User lost old phone, uploads clear ID -> account found, phone updated. (ID first, phone second.)",
     "messages": [
       "I lost access to my old phone number and need to update it",
       "no",
-      "555-123-4567",
-      "clear photo of my driver's license, name matches my account"
+      "clear photo of my driver's license, name matches my account",
+      "555-123-4567"
     ],
     "expected_outcome": "verified_and_updated"
   },
   {
     "id": "TC03_retry_then_success",
-    "description": "First ID photo is too blurry to verify; user resubmits a clear one and succeeds.",
+    "description": "First ID photo is too blurry; user resubmits a clear one, then provides new phone number.",
     "messages": [
       "I need to change my phone number, lost my old one",
       "no",
-      "555-987-6543",
       "blurry photo of my ID",
-      "clear photo of my ID, retaken in better light"
+      "clear photo of my ID, retaken in better light",
+      "555-987-6543"
     ],
     "expected_outcome": "verified_and_updated"
   },
   {
     "id": "TC04_retry_exhausted_escalate",
-    "description": "ID photo is unusable twice in a row -> retries exhausted, escalated to human support.",
+    "description": "ID photo is unusable twice in a row -> retries exhausted, escalated before phone is ever collected.",
     "messages": [
       "I need to change my phone number, lost my old one",
       "no",
-      "555-111-2222",
       "blurry dark photo of my ID",
       "still blurry and unclear photo, sorry"
     ],
@@ -45,58 +44,55 @@
   },
   {
     "id": "TC05_expired_id_escalate",
-    "description": "ID is expired -> not retryable, escalated immediately.",
+    "description": "ID is expired -> not retryable, escalated immediately before phone is collected.",
     "messages": [
       "I lost my phone and need to change my number",
       "no",
-      "555-222-3333",
       "photo of my ID, but I noticed it's expired"
     ],
     "expected_outcome": "escalated_verification_failed"
   },
   {
     "id": "TC06_name_mismatch_fraud_signal",
-    "description": "ID has a name mismatch with the account -> fraud signal, escalated for human review.",
+    "description": "ID has a name mismatch -> fraud signal, escalated for human review before phone is collected.",
     "messages": [
       "I need to change my phone number, I don't have my old phone anymore",
       "no",
-      "555-333-4444",
       "photo of an ID, but there's a name mismatch with a different name on it"
     ],
     "expected_outcome": "escalated_verification_failed"
   },
   {
     "id": "TC07_low_confidence_escalate",
-    "description": "Verification technically passes but with low confidence -> escalated for human double-check rather than auto-approved.",
+    "description": "Extraction passes but low confidence -> escalated for human double-check before phone is collected.",
     "messages": [
       "I lost access to my old phone number, need to change it",
       "no",
-      "555-444-5555",
       "photo of ID, somewhat low confidence and uncertain image quality"
     ],
     "expected_outcome": "escalated_low_confidence"
   },
   {
-    "id": "TC08_missing_phone_number_retry",
-    "description": "User gives a non-phone-number answer first; agent re-asks before proceeding.",
+    "id": "TC08_invalid_phone_retry",
+    "description": "ID verified successfully, but user gives invalid text instead of phone number; agent re-asks and succeeds.",
     "messages": [
       "I need to change my phone number, lost my old one",
       "no",
+      "clear photo of my driver's license",
       "not sure yet, let me check",
-      "555-666-7777",
-      "clear photo of my driver's license"
+      "555-666-7777"
     ],
     "expected_outcome": "verified_and_updated"
   },
   {
     "id": "TC09_missing_id_retry",
-    "description": "User gives gibberish instead of an ID description; agent re-asks before proceeding.",
+    "description": "User sends gibberish instead of an ID description; agent re-asks, then succeeds.",
     "messages": [
       "I need to change my phone number, lost my old one",
       "no",
-      "555-777-8888",
       "asdf",
-      "clear photo of my state ID"
+      "clear photo of my state ID",
+      "555-777-8888"
     ],
     "expected_outcome": "verified_and_updated"
   },
@@ -110,23 +106,33 @@
   },
   {
     "id": "TC11_ambiguous_but_valid_intake",
-    "description": "Vaguer phrasing that is still clearly a phone-change/access issue -> agent correctly classifies and proceeds.",
+    "description": "Vaguer phrasing that is still clearly a phone-change/access issue -> correctly classified and completed.",
     "messages": [
       "My phone number changed and now I can't log into Partiful with my old one",
       "no",
-      "555-888-9999",
-      "clear photo of my passport"
+      "clear photo of my passport",
+      "555-888-9999"
     ],
     "expected_outcome": "verified_and_updated"
   },
   {
     "id": "TC12_closed_session_repeat_message",
-    "description": "After a session resolves, further messages get a closed-conversation reply instead of restarting the flow.",
+    "description": "After a session resolves, further messages get a closed-conversation reply instead of restarting.",
     "messages": [
       "Hi, I need to change my phone number",
       "yes",
       "hello, are you still there?"
     ],
     "expected_outcome": "self_serve"
+  },
+  {
+    "id": "TC13_account_not_found",
+    "description": "ID extraction succeeds but name+DOB don't match any Partiful account -> escalated before phone is collected.",
+    "messages": [
+      "I need to change my phone number, I lost my old phone",
+      "no",
+      "clear photo of my ID but this account is unregistered"
+    ],
+    "expected_outcome": "escalated_account_not_found"
   }
 ]

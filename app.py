@@ -14,22 +14,7 @@ app = Flask(__name__)
 
 @app.route("/")
 def help_center():
-    return render_template("help.html")
-
-
-@app.route("/embedded")
-def help_embedded():
     return render_template("help_embedded.html")
-
-
-@app.route("/email")
-def email_inbox():
-    return render_template("email.html")
-
-
-@app.route("/chat")
-def chat():
-    return render_template("index.html")
 
 
 @app.route("/api/message", methods=["POST"])
@@ -48,6 +33,7 @@ def api_message():
         "reply": reply,
         "state": sess.state,
         "outcome": sess.outcome,
+        "backend_actions": sess.backend_actions,
     })
 
 
@@ -73,6 +59,7 @@ def api_upload_id():
         "reply": reply,
         "state": sess.state,
         "outcome": sess.outcome,
+        "backend_actions": sess.backend_actions,
     })
 
 

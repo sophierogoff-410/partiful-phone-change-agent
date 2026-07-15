@@ -47,8 +47,10 @@ class Session:
     retry_count: int = 0
     new_phone_number: Optional[str] = None
     id_description: Optional[str] = None
+    account_id: Optional[str] = None  # set after successful account lookup
     history: list = field(default_factory=list)
     outcome: Optional[str] = None
+    backend_actions: list = field(default_factory=list)
 
 
 SESSIONS: dict[str, Session] = {}
@@ -68,30 +70,116 @@ def reset_sessions() -> None:
 # Mocked external systems (per assignment: print the action instead of
 # calling a real internal API; identity verification is assumed to be an
 # existing third-party vendor integration, mocked here deterministically).
+# Every call is logged to the console AND to session.backend_actions so the
+# widget can show the user exactly which backend systems would be touched in
+# production -- the ID-verification vendor call, the internal phone-number
+# update, and the downstream SMS confirmation.
 # --------------------------------------------------------------------------
-def mock_identity_verification(id_description: str) -> dict:
+def _log_action(session: Optional[Session], action: str) -> None:
+    print(action)
+    if session is not None:
+        session.backend_actions.append(action)
+
+
+def mock_identity_verification(id_description: str, session: Optional[Session] = None) -> dict:
+    """
+    Simulates sending the uploaded ID image to the Anthropic vision API (claude-opus-4-8)
+    to extract structured fields (name, DOB, document type). In production this would pass
+    the image bytes to client.messages.create() with a vision prompt asking Claude to extract
+    the fields — no separate vendor needed since we already have the Anthropic API key.
+
+    A production version could optionally add a specialized document-authenticity check
+    (e.g. Persona, Onfido) on top of this extraction step for higher-risk accounts.
+    """
     text = (id_description or "").lower()
     if "expired" in text:
-        return {"result": "fail", "confidence": 0.9, "reason": "expired_id", "retryable": False}
-    if "mismatch" in text or "different name" in text:
-        return {
-            "result": "fail",
-            "confidence": 0.85,
-            "reason": "name_mismatch",
-            "retryable": False,
-            "fraud_signal": True,
+        result = {
+            "result": "fail", "confidence": 0.9, "reason": "expired_id", "retryable": False,
+            "extracted": {"error": "document_expired"},
         }
-    if "blurry" in text or "unclear" in text or "dark" in text:
-        return {"result": "fail", "confidence": 0.4, "reason": "low_image_quality", "retryable": True}
-    if "low confidence" in text or "uncertain" in text:
-        return {"result": "pass", "confidence": 0.55, "reason": "low_confidence_pass", "retryable": False}
-    return {"result": "pass", "confidence": 0.97, "reason": "verified", "retryable": False}
+    elif "mismatch" in text or "different name" in text:
+        result = {
+            "result": "fail", "confidence": 0.85, "reason": "name_mismatch",
+            "retryable": False, "fraud_signal": True,
+            "extracted": {"error": "name_does_not_match_account"},
+        }
+    elif "blurry" in text or "unclear" in text or "dark" in text:
+        result = {
+            "result": "fail", "confidence": 0.4, "reason": "low_image_quality", "retryable": True,
+            "extracted": {"error": "could_not_read_document"},
+        }
+    elif "unregistered" in text or "no account" in text or "no_account" in text:
+        # Extraction succeeds but the name+DOB won't match any Partiful account —
+        # simulates a user uploading a valid ID that isn't associated with an account.
+        result = {
+            "result": "pass", "confidence": 0.95, "reason": "fields_extracted", "retryable": False,
+            "extracted": {"first_name": "Alex", "last_name": "Smith", "dob": "1992-08-21", "type": "driving_license"},
+        }
+    elif "low confidence" in text or "uncertain" in text:
+        result = {
+            "result": "pass", "confidence": 0.55, "reason": "low_confidence_pass", "retryable": False,
+            "extracted": {"first_name": "Sophia", "last_name": "Rogoff", "dob": "1990-03-14", "type": "driving_license"},
+        }
+    else:
+        result = {
+            "result": "pass", "confidence": 0.97, "reason": "fields_extracted", "retryable": False,
+            "extracted": {"first_name": "Sophia", "last_name": "Rogoff", "dob": "1990-03-14", "type": "driving_license"},
+        }
+
+    _log_action(
+        session,
+        f"ACTION: anthropic_api.extract_document_fields(model='claude-opus-4-8', input={id_description!r}) -> {result}",
+    )
+    return result
 
 
-def mock_update_phone_number(account_id: str, new_number: str) -> dict:
+def mock_lookup_account(first_name: str, last_name: str, dob: str, session: Optional[Session] = None) -> dict:
+    """
+    Simulates Partiful's internal account lookup API. In production this would query
+    Partiful's user database by name + DOB extracted from the ID, returning the matched
+    account so we know which record to update. Returns {"account_id": None} if no match.
+    """
+    # "Alex Smith" simulates a valid ID whose name+DOB doesn't match any Partiful account.
+    if first_name.lower() == "alex" and last_name.lower() == "smith":
+        result = {"account_id": None, "found": False, "error": "no_matching_account"}
+    else:
+        result = {
+            "account_id": "PARTIFUL_ACCT_a8f3c2",
+            "found": True,
+            "email": f"{first_name.lower()}.{last_name.lower()}@example.com",
+            "current_phone": "+1 (555) 000-0000",
+            "match": "name+dob",
+        }
+    _log_action(
+        session,
+        f"ACTION: partiful_api.lookup_account(first_name={first_name!r}, last_name={last_name!r}, dob={dob!r}) -> {result}",
+    )
+    return result
+
+
+def mock_update_phone_number(account_id: str, new_number: str, session: Optional[Session] = None) -> dict:
     action = f"ACTION: update_phone_number(account_id={account_id!r}, new_number={new_number!r})"
-    print(action)
+    _log_action(session, action)
     return {"status": "success", "action_logged": action}
+
+
+def mock_send_confirmation_text(phone_number: str, session: Optional[Session] = None) -> dict:
+    action = (
+        f"ACTION: send_confirmation_sms(to={phone_number!r}, "
+        "message='Your Partiful account phone number has been updated. "
+        "If this wasn't you, contact hello@partiful.com immediately.')"
+    )
+    _log_action(session, action)
+    return {"status": "sent", "action_logged": action}
+
+
+def mock_send_escalation_email(to: str, subject: str, body: str, session: Optional[Session] = None) -> dict:
+    preview = body[:80] + ("…" if len(body) > 80 else "")
+    action = (
+        f"ACTION: send_email(to={to!r}, subject={subject!r}, body={preview!r})"
+    )
+    _log_action(session, action)
+    return {"status": "sent", "action_logged": action}
 
 
 # --------------------------------------------------------------------------
@@ -120,7 +208,9 @@ def validate_fields(phone_text: str, id_text: str) -> FieldValidation:
         system=(
             "You validate whether a user has provided a usable new phone number and a "
             "description of an uploaded government ID for identity verification. "
-            "A valid phone number has at least 10 digits (formatting can vary). "
+            "Partiful supports international users, so a valid phone number has between "
+            "7 and 15 digits total (formatting, spaces, dashes, parentheses, and a leading "
+            "'+' country code are all acceptable variations). "
             "The ID description is 'complete' if it is non-empty, coherent, and describes an "
             "attempted photo of an identity document. Mark it complete EVEN IF the user says "
             "it's blurry, dark, unclear, a retry, or apologizes for image quality — those are "
@@ -166,7 +256,8 @@ def generate_escalation_summary(session: "Session", reason: str) -> str:
 SELF_SERVE_MSG = (
     "Great — since you still have access to your old phone number, you can change it "
     "yourself in a couple of taps. Instructions: "
-    "https://help.partiful.com/hc/en-us/articles/26025082969243-Can-I-change-my-phone-number"
+    '<a href="https://help.partiful.com/hc/en-us/articles/26025082969243-Can-I-change-my-phone-number" '
+    'target="_blank" rel="noopener">Can I change my phone number?</a>'
 )
 
 CLOSED_OUT_OF_SCOPE_MSG = (
@@ -200,22 +291,10 @@ def _route(session: Session, user_message: str) -> str:
             session.state = "DONE"
             session.outcome = "self_serve"
             return SELF_SERVE_MSG
-        session.state = "COLLECT_PHONE"
-        return (
-            "Sorry to hear that! I can verify your identity so we can update your number. "
-            "First, what's the new phone number you'd like on your account?"
-        )
-
-    if session.state == "COLLECT_PHONE":
-        session.new_phone_number = user_message.strip()
-        v = validate_fields(session.new_phone_number, "placeholder")
-        if not v.new_phone_number_valid:
-            session.new_phone_number = None
-            return "That doesn't look like a valid phone number — could you send it again (e.g. 555-123-4567)?"
         session.state = "COLLECT_ID"
         return (
-            "Thanks! Now I'll need a government-issued photo ID — please upload a photo, "
-            "or describe it here if that's easier (e.g. 'clear photo of my driver's license')."
+            "Sorry to hear that! Let's verify your identity first. "
+            "Please upload a photo of a government-issued ID (driver's license or passport)."
         )
 
     if session.state in ("COLLECT_ID", "RETRY_ID"):
@@ -223,8 +302,23 @@ def _route(session: Session, user_message: str) -> str:
         v = validate_fields(session.new_phone_number or "", session.id_description)
         if not v.id_description_present or not v.id_description_looks_complete:
             return "I still need a valid ID description to continue — could you provide that?"
-        result = mock_identity_verification(session.id_description)
+        result = mock_identity_verification(session.id_description, session=session)
         return _handle_verification_result(session, result)
+
+    if session.state == "COLLECT_PHONE":
+        session.new_phone_number = user_message.strip()
+        v = validate_fields(session.new_phone_number, "placeholder")
+        if not v.new_phone_number_valid:
+            session.new_phone_number = None
+            return "That doesn't look like a valid phone number — could you send it again (e.g. +1 555-123-4567)?"
+        mock_update_phone_number(account_id=session.account_id or session.id, new_number=session.new_phone_number, session=session)
+        mock_send_confirmation_text(session.new_phone_number, session=session)
+        session.state = "DONE"
+        session.outcome = "verified_and_updated"
+        return (
+            f"Done! I've updated your phone number to {session.new_phone_number}. "
+            "You'll get a confirmation text shortly."
+        )
 
     if session.state in ("DONE", "CLOSED", "ESCALATED"):
         return SESSION_CLOSED_MSG
@@ -236,18 +330,44 @@ def _route(session: Session, user_message: str) -> str:
 
 def _handle_verification_result(session: Session, result: dict) -> str:
     if result["result"] == "pass" and result["confidence"] >= LOW_CONFIDENCE_THRESHOLD:
-        mock_update_phone_number(account_id=session.id, new_number=session.new_phone_number)
-        session.state = "DONE"
-        session.outcome = "verified_and_updated"
+        doc = result.get("extracted", {})
+        first = doc.get("first_name", "")
+        last = doc.get("last_name", "")
+        dob = doc.get("dob", "")
+        acct = mock_lookup_account(first_name=first, last_name=last, dob=dob, session=session)
+        if not acct.get("found"):
+            session.state = "ESCALATED"
+            session.outcome = "escalated_account_not_found"
+            summary = generate_escalation_summary(session, "no_matching_account")
+            mock_send_escalation_email(
+                to="hello@partiful.com",
+                subject=f"Phone number change escalation — ref: {session.id}",
+                body=summary,
+                session=session,
+            )
+            return (
+                "We couldn't find a Partiful account matching the information on your ID. "
+                "I've flagged this for our support team — they'll reach out to help. "
+                "Internal summary:\n\n" + summary
+            )
+        session.account_id = acct["account_id"]
+        name = f"{first} {last}".strip()
+        session.state = "COLLECT_PHONE"
         return (
-            f"You're verified! I've updated your phone number to {session.new_phone_number}. "
-            "You'll get a confirmation text shortly."
+            f"ID verified and account found{f' ({name})' if name else ''}. "
+            "What's the new phone number you'd like on your account?"
         )
 
     if result["result"] == "pass" and result["confidence"] < LOW_CONFIDENCE_THRESHOLD:
         session.state = "ESCALATED"
         session.outcome = "escalated_low_confidence"
         summary = generate_escalation_summary(session, "low_confidence_verification")
+        mock_send_escalation_email(
+            to="hello@partiful.com",
+            subject=f"Phone number change escalation — ref: {session.id}",
+            body=summary,
+            session=session,
+        )
         return (
             "Thanks for your patience — I'd like a teammate to double-check this one before "
             "we make the change. I've escalated your request. Internal summary:\n\n" + summary
@@ -264,6 +384,12 @@ def _handle_verification_result(session: Session, result: dict) -> str:
     session.state = "ESCALATED"
     session.outcome = "escalated_verification_failed"
     summary = generate_escalation_summary(session, result["reason"])
+    mock_send_escalation_email(
+        to="hello@partiful.com",
+        subject=f"Phone number change escalation — ref: {session.id}",
+        body=summary,
+        session=session,
+    )
     return (
         "I wasn't able to verify your identity automatically, so I've escalated this to our "
         "support team — they'll follow up soon. Internal summary:\n\n" + summary

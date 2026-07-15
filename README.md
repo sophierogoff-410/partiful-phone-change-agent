@@ -10,12 +10,10 @@ low. See [`SCOPING_DOCUMENT.md`](SCOPING_DOCUMENT.md) for the full write-up
 | File | Purpose |
 |---|---|
 | `agent.py` | Core state machine + Claude calls + mocked verification/update APIs |
-| `app.py` | Flask app wiring the state machine to a browser UI |
-| `templates/help.html` | Option A: Help Center article + "email support" entry point |
-| `templates/email.html` | Mock auto-reply email linking to the agent |
-| `templates/index.html` | The chat agent UI (used by Option A) |
-| `templates/help_embedded.html` | Option B: same Help Center article with a guided popup verification wizard (no email step) |
-| `sample_ids/` | Placeholder JPEGs for the wizard's file-upload step, named to exercise each verification outcome (clear/blurry/expired/mismatch) |
+| `app.py` | Flask app wiring the state machine to the widget UI |
+| `templates/help_embedded.html` | Help Center article with the guided popup verification widget |
+| `static/embedded.js` | Widget logic: steps, file upload/camera capture, drag-and-drop |
+| `sample_ids/` | Placeholder JPEGs for the widget's file-upload step, named to exercise each verification outcome (clear/blurry/expired/mismatch) |
 | `test_cases.json` | 12 scripted end-to-end test scenarios |
 | `run_tests.py` | Runs every test case against the live agent, reports pass/fail |
 | `SCOPING_DOCUMENT.md` | Full written scoping document |
@@ -25,8 +23,9 @@ low. See [`SCOPING_DOCUMENT.md`](SCOPING_DOCUMENT.md) for the full write-up
 1. **Python 3.10+** required.
 2. Create a virtual environment and install dependencies:
    ```
-   python -m venv .venv
-   .venv\Scripts\activate      (Windows)
+   python3 -m venv .venv
+   source .venv/bin/activate    (macOS/Linux)
+   .venv\Scripts\activate       (Windows)
    pip install -r requirements.txt
    ```
 3. Add your Anthropic API key to `.env` in this folder:
@@ -38,26 +37,26 @@ low. See [`SCOPING_DOCUMENT.md`](SCOPING_DOCUMENT.md) for the full write-up
 ## Running the app
 
 ```
-.venv\Scripts\python.exe app.py
+.venv/bin/python app.py       (macOS/Linux)
+.venv\Scripts\python.exe app.py   (Windows)
 ```
 
-Open **http://127.0.0.1:5000** in a browser. Two rollout options are demoable, with a
-"Demo mode" switcher in the header of each to jump between them:
+Open **http://127.0.0.1:5000** in a browser. It's the real Help Center article for
+"Can I change my phone number?" — clicking **"Verify my identity"** opens a guided
+popup widget right there: one question at a time, ending in a file upload (or a typed
+description, or a direct camera capture) for the ID step. No email step at all. Use the
+files in `sample_ids/` when the widget asks for an ID photo — each filename is mapped to
+a different verification outcome (see the table below).
 
-- **Option A — email flow** (`/`): Help Center → "Simulate emailing hello@partiful.com"
-  → auto-reply email → "Start verification chat" → live agent. Ships fastest — no
-  changes to Partiful's real website, just an email-automation rule + a hosted agent page.
-- **Option B — embedded widget** (`/embedded`): same Help Center article, but clicking
-  "Verify my identity" opens a guided popup wizard right there — one question at a
-  time, ending in a real JPEG file upload for the ID step. No email step at all.
-  Better UX, but requires shipping a UI change to the real help center. Use the files
-  in `sample_ids/` when the wizard asks for an ID photo — each filename is mapped to a
-  different verification outcome (see the table below).
+(`SCOPING_DOCUMENT.md` §5 also discusses two alternatives we prototyped and set aside in
+favor of this widget — a fully email-based conversation, and an email-triggered link to
+a chat page — and why neither makes the cut for how we'd want this to scale.)
 
 ## Running the automated tests
 
 ```
-.venv\Scripts\python.exe run_tests.py
+.venv/bin/python run_tests.py     (macOS/Linux)
+.venv\Scripts\python.exe run_tests.py   (Windows)
 ```
 
 Runs all 12 cases in `test_cases.json` against the real agent logic (real Claude API
@@ -68,31 +67,30 @@ calls, ~$0.10 total), prints a pass/fail table, and writes full transcripts to
 
 Suggested walkthrough to cover in the recording (~5–8 minutes):
 
-1. **Show the scoping doc** briefly — design principles, MVP scope, and the two rollout options.
-2. **Start at the Help Center page** (`/`) — show the real self-serve instructions.
-3. Click **"Simulate emailing hello@partiful.com"** → show the auto-reply email → click
-   **"Start verification chat"**.
-3a. Switch to **`/embedded`** and briefly show the alternate no-email version for
-    comparison — same conversation, no page navigation.
-4. **Happy path:** say you lost your phone, provide a phone number, describe a clear ID
-   → show the agent verifying and printing the `ACTION: update_phone_number(...)` in
-   the terminal, and confirming to the user.
-5. **Retry path:** start a new session, describe a blurry ID, then resubmit a clear one
+1. **Show the scoping doc** briefly — design principles, MVP scope, and why we led with
+   the embedded widget over an email-based flow.
+2. **Start at the Help Center page** (`/`) — show the real self-serve instructions, then
+   click **"Verify my identity"** to open the widget.
+3. **Happy path:** say you lost your phone, provide a phone number, describe or upload a
+   clear ID → show the agent verifying and printing the `ACTION: update_phone_number(...)`
+   in the terminal, and confirming to the user in the popup.
+4. **Retry path:** start a new session, describe a blurry ID, then resubmit a clear one
    → show the agent asking for a resubmission and then succeeding.
-6. **Escalation path:** start a new session, describe an ID with a name mismatch (or
+5. **Escalation path:** start a new session, describe an ID with a name mismatch (or
    "expired") → show the agent escalating with a generated handoff summary instead of
    guessing.
-7. **Run `run_tests.py`** on screen to show all 12 test cases passing in one shot.
-8. **Close on the scoping doc's Future Improvements section** — frame it as "here's what
+6. **Run `run_tests.py`** on screen to show all 12 test cases passing in one shot.
+7. **Close on the scoping doc's Future Improvements section** — frame it as "here's what
    we deliberately left out, and why."
 
-Each browser session keeps its own conversation via `localStorage` — refresh the page
-or open a new incognito window to start a fresh conversation for each demo path.
+Each browser session's widget conversation lives only in memory for that page load —
+refresh the page or open a new tab to start a fresh conversation for each demo path.
 
 ### Sample ID files (`sample_ids/`)
 
-The wizard's ID step (Option B) is a real JPEG file picker. Verification is mocked off
-the uploaded *filename*, not real image content (see `SCOPING_DOCUMENT.md` §7
+The widget's ID step is a real file picker (JPEG/PNG/HEIC/PDF), plus a "Take a photo"
+camera-capture button and a "describe it instead" text fallback. Verification is mocked
+off the uploaded *filename*, not real image content (see `SCOPING_DOCUMENT.md` §7
 Assumptions) — pick the file matching the outcome you want to demo:
 
 | File | Outcome |

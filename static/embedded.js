@@ -4,7 +4,7 @@ const closeBtn = document.getElementById("modal-close");
 const body = document.getElementById("modal-body");
 const dots = Array.from(document.querySelectorAll("#step-dots .dot"));
 
-const STEP_ORDER = ["access", "phone", "id", "result"];
+const STEP_ORDER = ["access", "id", "phone", "result"];
 let sessionId = null;
 
 function setActiveDot(stepName) {
@@ -52,43 +52,73 @@ function renderAccessStep(question) {
   document.getElementById("access-no").addEventListener("click", () => handleReply("no"));
 }
 
-function formatPhoneDigits(digits) {
-  if (digits.length <= 3) return digits;
-  if (digits.length <= 6) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
-  return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6, 10)}`;
-}
+// Common country calling codes, US/Canada first since that's the majority of the base today.
+const COUNTRY_CODES = [
+  { code: "+1", label: "US/Canada (+1)" },
+  { code: "+44", label: "UK (+44)" },
+  { code: "+61", label: "Australia (+61)" },
+  { code: "+52", label: "Mexico (+52)" },
+  { code: "+353", label: "Ireland (+353)" },
+  { code: "+91", label: "India (+91)" },
+  { code: "+81", label: "Japan (+81)" },
+  { code: "+49", label: "Germany (+49)" },
+  { code: "+33", label: "France (+33)" },
+  { code: "+34", label: "Spain (+34)" },
+  { code: "+55", label: "Brazil (+55)" },
+];
+
+const MIN_PHONE_DIGITS = 7; // shortest valid national number across supported countries
+const MAX_PHONE_DIGITS = 12; // longest valid national number across supported countries
 
 function renderPhoneStep(question, errorText) {
   setActiveDot("phone");
+  const options = COUNTRY_CODES.map(
+    (c) => `<option value="${c.code}">${c.label}</option>`
+  ).join("");
   body.innerHTML = `
     ${errorText ? `<p class="step-error">${errorText}</p>` : ""}
     <p class="step-question">${question}</p>
-    <input class="step-input" id="step-input" type="tel" inputmode="numeric"
-           placeholder="555-123-4567" autocomplete="off" maxlength="12" />
-    <p class="step-hint" id="phone-hint">Enter a 10-digit US phone number (0/10)</p>
+    <div class="phone-row">
+      <select class="country-select" id="country-select">${options}</select>
+      <input class="step-input phone-number-input" id="step-input" type="tel" inputmode="numeric"
+             placeholder="555 123 4567" autocomplete="tel-national" />
+    </div>
+    <p class="step-hint" id="phone-hint">We'll text a confirmation to this number once it's updated.</p>
     <div class="step-actions">
       <button class="btn btn-primary" id="step-submit" disabled>Continue</button>
     </div>`;
 
+  const countrySelect = document.getElementById("country-select");
   const input = document.getElementById("step-input");
   const submitBtn = document.getElementById("step-submit");
-  const hint = document.getElementById("phone-hint");
 
-  input.addEventListener("input", () => {
-    const digits = input.value.replace(/\D/g, "").slice(0, 10);
-    input.value = formatPhoneDigits(digits);
-    const complete = digits.length === 10;
+  const validate = () => {
+    // Strip anything that isn't a digit or basic phone-number punctuation, and
+    // hard-cap the digit count so the field physically can't hold more than a
+    // real phone number -- not just disable Continue past that point.
+    let sanitized = "";
+    let digitCount = 0;
+    for (const ch of input.value) {
+      if (/\d/.test(ch)) {
+        if (digitCount >= MAX_PHONE_DIGITS) continue;
+        digitCount++;
+        sanitized += ch;
+      } else if (/[\s().-]/.test(ch)) {
+        sanitized += ch;
+      }
+    }
+    if (sanitized !== input.value) input.value = sanitized;
+    const complete = digitCount >= MIN_PHONE_DIGITS && digitCount <= MAX_PHONE_DIGITS;
     submitBtn.disabled = !complete;
-    hint.textContent = complete
-      ? "Looks good"
-      : `Enter a 10-digit US phone number (${digits.length}/10)`;
-    hint.classList.toggle("step-hint-complete", complete);
-  });
+    return complete;
+  };
+
+  input.addEventListener("input", validate);
 
   const submit = () => {
-    const digits = input.value.replace(/\D/g, "");
-    if (digits.length !== 10) return;
-    handleReply(input.value, "One sec…");
+    if (!validate()) return;
+    const fullNumber = `${countrySelect.value} ${input.value.trim()}`;
+    handleReply(fullNumber, "One sec…");
   };
   submitBtn.addEventListener("click", submit);
   input.addEventListener("keydown", (e) => {
@@ -97,47 +127,99 @@ function renderPhoneStep(question, errorText) {
   input.focus();
 }
 
+const ID_FILE_ACCEPT = "image/jpeg,image/png,image/heic,image/webp,application/pdf";
+
+async function submitIdFile(file) {
+  renderLoading("Verifying your identity…");
+  try {
+    const formData = new FormData();
+    formData.append("session_id", sessionId);
+    formData.append("file", file);
+    const res = await fetch("/api/upload_id", { method: "POST", body: formData });
+    if (!res.ok) throw new Error("upload failed");
+    routeStep(await res.json());
+  } catch (err) {
+    renderError();
+  }
+}
+
 function renderIdUploadStep(question, errorText) {
   setActiveDot("id");
   body.innerHTML = `
     ${errorText ? `<p class="step-error">${errorText}</p>` : ""}
     <p class="step-question">${question}</p>
     <label class="file-drop" id="file-drop">
-      <input type="file" id="id-file-input" accept="image/jpeg" hidden />
-      <span id="file-drop-label">Choose a JPEG photo of your ID</span>
+      <input type="file" id="id-file-input" accept="${ID_FILE_ACCEPT}" hidden />
+      <span id="file-drop-label">Drag a photo here, or click to browse<br />(JPEG, PNG, HEIC, or PDF)</span>
     </label>
     <div class="step-actions">
+      <button class="btn btn-outline" id="camera-btn" type="button">Take a photo</button>
       <button class="btn btn-primary" id="step-submit" disabled>Submit for verification</button>
     </div>`;
 
   const fileInput = document.getElementById("id-file-input");
+  const dropZone = document.getElementById("file-drop");
   const dropLabel = document.getElementById("file-drop-label");
   const submitBtn = document.getElementById("step-submit");
+  const cameraBtn = document.getElementById("camera-btn");
+
+  // Hidden input dedicated to camera capture -- on mobile, `capture` opens the
+  // camera directly instead of the general file/photo picker.
+  const cameraInput = document.createElement("input");
+  cameraInput.type = "file";
+  cameraInput.accept = "image/*";
+  cameraInput.capture = "environment";
+  cameraInput.hidden = true;
+  body.appendChild(cameraInput);
+
+  const setSelectedFile = (file) => {
+    if (!file) return;
+    fileInput.files = (() => {
+      const dt = new DataTransfer();
+      dt.items.add(file);
+      return dt.files;
+    })();
+    dropLabel.textContent = file.name;
+    submitBtn.disabled = false;
+  };
 
   fileInput.addEventListener("change", () => {
     const file = fileInput.files[0];
-    dropLabel.textContent = file ? file.name : "Choose a JPEG photo of your ID";
-    submitBtn.disabled = !file;
-  });
-
-  submitBtn.addEventListener("click", async () => {
-    const file = fileInput.files[0];
-    if (!file) return;
-    renderLoading("Verifying your identity…");
-    try {
-      const formData = new FormData();
-      formData.append("session_id", sessionId);
-      formData.append("file", file);
-      const res = await fetch("/api/upload_id", { method: "POST", body: formData });
-      if (!res.ok) throw new Error("upload failed");
-      routeStep(await res.json());
-    } catch (err) {
-      renderError();
+    if (file) {
+      dropLabel.textContent = file.name;
+      submitBtn.disabled = false;
     }
   });
+
+  cameraBtn.addEventListener("click", () => cameraInput.click());
+  cameraInput.addEventListener("change", () => setSelectedFile(cameraInput.files[0]));
+
+  ["dragenter", "dragover"].forEach((evt) =>
+    dropZone.addEventListener(evt, (e) => {
+      e.preventDefault();
+      dropZone.classList.add("file-drop-active");
+    })
+  );
+  ["dragleave", "drop"].forEach((evt) =>
+    dropZone.addEventListener(evt, (e) => {
+      e.preventDefault();
+      dropZone.classList.remove("file-drop-active");
+    })
+  );
+  dropZone.addEventListener("drop", (e) => {
+    const file = e.dataTransfer.files[0];
+    if (file) setSelectedFile(file);
+  });
+
+  submitBtn.addEventListener("click", () => {
+    const file = fileInput.files[0];
+    if (!file) return;
+    submitIdFile(file);
+  });
+
 }
 
-function renderResultStep(outcome, reply) {
+function renderResultStep(outcome, reply, backendActions) {
   setActiveDot("result");
   const isSuccess = outcome === "self_serve" || outcome === "verified_and_updated";
   let userMessage = reply;
@@ -149,17 +231,34 @@ function renderResultStep(outcome, reply) {
     internalSummary = parts[1].trim();
   }
 
+  const mailtoSubject = encodeURIComponent(`Phone number change request — ref ${sessionId}`);
+  const mailtoBody = encodeURIComponent(
+    `Hi Partiful team,\n\nI'm following up on my phone number change request (ref: ${sessionId}).\n\n${internalSummary || ""}`
+  );
+
   body.innerHTML = `
     <div class="result-card ${isSuccess ? "result-success" : "result-warning"}">
       <div class="result-icon">${isSuccess ? "✓" : "!"}</div>
       <div class="result-title">${isSuccess ? "You're all set" : "We've looped in a teammate"}</div>
       <p class="result-message">${userMessage}</p>
+      ${backendActions && backendActions.length ? `
+        <details class="result-details">
+          <summary>See what happened on the backend</summary>
+          <pre class="result-summary">${backendActions.join("\n\n")}</pre>
+        </details>` : ""}
       ${internalSummary ? `
         <details class="result-details">
           <summary>See what we shared with our support team</summary>
           <pre class="result-summary">${internalSummary}</pre>
         </details>` : ""}
+      ${!isSuccess ? `
+        <a class="btn btn-outline result-mailto" href="mailto:hello@partiful.com?subject=${mailtoSubject}&body=${mailtoBody}">
+          Email our support team
+        </a>` : ""}
       <button class="btn btn-primary" id="result-close">Done</button>
+      <p class="result-contact">
+        Have further questions? Reach out to <a href="mailto:hello@partiful.com">hello@partiful.com</a>.
+      </p>
     </div>`;
   document.getElementById("result-close").addEventListener("click", closeModal);
 }
@@ -175,20 +274,22 @@ async function handleReply(message, loadingLabel) {
 }
 
 function routeStep(data) {
-  const { state, outcome, reply } = data;
+  const { state, outcome, reply, backend_actions: backendActions } = data;
   if (state === "ASK_ACCESS") {
     renderAccessStep(reply);
-  } else if (state === "COLLECT_PHONE") {
-    const isRetryError = reply.startsWith("That doesn't look like");
-    renderPhoneStep(isRetryError ? "What's the new phone number you'd like on your account?" : reply,
-      isRetryError ? reply : null);
   } else if (state === "COLLECT_ID" || state === "RETRY_ID") {
     const isError = reply.startsWith("I still need");
-    let question = "Upload a JPEG photo of a government-issued ID.";
-    if (!isError && state === "RETRY_ID") question = reply; // backend's retry context (e.g. why it failed)
+    let question = "Upload a photo of a government-issued ID (driver's license or passport).";
+    if (!isError && state === "RETRY_ID") question = reply;
     renderIdUploadStep(question, isError ? reply : null);
+  } else if (state === "COLLECT_PHONE") {
+    const isRetryError = reply.startsWith("That doesn't look like");
+    renderPhoneStep(
+      isRetryError ? "What's the new phone number you'd like on your account?" : reply,
+      isRetryError ? reply : null
+    );
   } else if (state === "DONE" || state === "ESCALATED") {
-    renderResultStep(outcome, reply);
+    renderResultStep(outcome, reply, backendActions);
   } else {
     renderError();
   }
