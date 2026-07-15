@@ -92,7 +92,13 @@ def mock_identity_verification(id_description: str, session: Optional[Session] =
     (e.g. Persona, Onfido) on top of this extraction step for higher-risk accounts.
     """
     text = (id_description or "").lower()
-    if "mismatch" in text or "different name" in text:
+    if "expired" in text:
+        result = {
+            "result": "fail", "confidence": 0.9, "reason": "document_expired",
+            "retryable": False, "fraud_signal": False,
+            "extracted": {"error": "document_expired"},
+        }
+    elif "mismatch" in text or "different name" in text:
         result = {
             "result": "fail", "confidence": 0.85, "reason": "name_mismatch",
             "retryable": False, "fraud_signal": True,

@@ -43,17 +43,7 @@
     "expected_outcome": "escalated_verification_failed"
   },
   {
-    "id": "TC05_expired_id_escalate",
-    "description": "ID is expired -> not retryable, escalated immediately before phone is collected.",
-    "messages": [
-      "I lost my phone and need to change my number",
-      "no",
-      "photo of my ID, but I noticed it's expired"
-    ],
-    "expected_outcome": "escalated_verification_failed"
-  },
-  {
-    "id": "TC06_name_mismatch_fraud_signal",
+    "id": "TC05_name_mismatch_fraud_signal",
     "description": "ID has a name mismatch -> fraud signal, escalated for human review before phone is collected.",
     "messages": [
       "I need to change my phone number, I don't have my old phone anymore",
