@@ -92,12 +92,7 @@ def mock_identity_verification(id_description: str, session: Optional[Session] =
     (e.g. Persona, Onfido) on top of this extraction step for higher-risk accounts.
     """
     text = (id_description or "").lower()
-    if "expired" in text:
-        result = {
-            "result": "fail", "confidence": 0.9, "reason": "expired_id", "retryable": False,
-            "extracted": {"error": "document_expired"},
-        }
-    elif "mismatch" in text or "different name" in text:
+    if "mismatch" in text or "different name" in text:
         result = {
             "result": "fail", "confidence": 0.85, "reason": "name_mismatch",
             "retryable": False, "fraud_signal": True,
@@ -233,9 +228,14 @@ def generate_escalation_summary(session: "Session", reason: str) -> str:
         model=MODEL,
         max_tokens=300,
         system=(
-            "Write a concise internal handoff summary for a human support agent picking up "
-            "this escalated phone-number-change request. 3-5 bullet points: what the user "
-            "wants, what was collected, the verification result, and why it was escalated."
+            "Write a short 'What happened' summary from the USER's first-person perspective "
+            "for a phone number change request that could not be completed automatically. "
+            "Write 3-4 bullet points starting each with '• ' and written in first person "
+            "(e.g. '• I confirmed I no longer have access to my previous phone number.', "
+            "'• I submitted my government-issued ID for verification.', "
+            "'• My verification could not be completed because the ID I uploaded was expired.'). "
+            "These will appear verbatim in a support email the user sends to Partiful. "
+            "Be concise, factual, and user-friendly — no internal jargon."
         ),
         messages=[{
             "role": "user",

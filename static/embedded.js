@@ -231,30 +231,34 @@ function renderResultStep(outcome, reply, backendActions) {
     internalSummary = parts[1].trim();
   }
 
-  const mailtoSubject = encodeURIComponent(`Phone number change request — ref ${sessionId}`);
+  const mailtoSubject = encodeURIComponent("Phone Number Change Request");
+  const whatHappened = internalSummary || "• My request could not be completed automatically.";
   const mailtoBody = encodeURIComponent(
-    `Hi Partiful team,\n\nI'm following up on my phone number change request (ref: ${sessionId}).\n\n${internalSummary || ""}`
+    `Hi Partiful Support,\n\n` +
+    `I need help updating the phone number associated with my Partiful account because I no longer have access to my previous phone number.\n\n` +
+    `I completed the phone recovery flow, but my request couldn't be completed automatically.\n\n` +
+    `Reference ID: ${sessionId}\n` +
+    `New phone number: (insert here)\n\n` +
+    `What happened\n\n${whatHappened}\n\n` +
+    `Please let me know if you need any additional information to help complete my phone number update.\n\n` +
+    `Thanks!`
   );
 
   body.innerHTML = `
     <div class="result-card ${isSuccess ? "result-success" : "result-warning"}">
       <div class="result-icon">${isSuccess ? "✓" : "!"}</div>
-      <div class="result-title">${isSuccess ? "You're all set" : "We've looped in a teammate"}</div>
-      <p class="result-message">${userMessage}</p>
+      <div class="result-title">${isSuccess ? "You're all set" : "We weren't able to verify your identity automatically"}</div>
+      <p class="result-message">${isSuccess ? userMessage : "We recommend emailing our support team. Click the link below for a pre-filled email — just insert your new phone number and attach a photo of your ID before sending."}</p>
       ${backendActions && backendActions.length ? `
         <details class="result-details">
           <summary>See what happened on the backend</summary>
           <pre class="result-summary">${backendActions.join("\n\n")}</pre>
         </details>` : ""}
-      ${internalSummary ? `
-        <details class="result-details">
-          <summary>See what we shared with our support team</summary>
-          <pre class="result-summary">${internalSummary}</pre>
-        </details>` : ""}
       ${!isSuccess ? `
         <a class="btn btn-outline result-mailto" href="mailto:hello@partiful.com?subject=${mailtoSubject}&body=${mailtoBody}">
           Email our support team
-        </a>` : ""}
+        </a>
+        <p class="result-contact" style="margin-top:10px;">Before sending, fill in your new number and attach a photo of your ID.</p>` : ""}
       <button class="btn btn-primary" id="result-close">Done</button>
       <p class="result-contact">
         Have further questions? Reach out to <a href="mailto:hello@partiful.com">hello@partiful.com</a>.
